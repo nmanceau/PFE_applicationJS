@@ -1,41 +1,19 @@
-////////////////////////////////////////////////////
-////////////////// CONFIGURATION ///////////////////
-////////////////////////////////////////////////////
-
-// Configuration MQTT
-
-//https://www.npmjs.com/package/mqtt
-var mqtt = require('mqtt');
+var mqtt = require('mqtt'); 	//https://www.npmjs.com/package/mqtt
 // Souscription à tous les topics
 var Topic = '#'; 		
 // URL du broker MQTT
 var Broker_URL = 'mqtt://127.0.0.1';
+// URL de la base de données
+var Database_URL = '127.0.0.1';
 
 // Options de connexion au broker MQTT
 var options = {
-        clientId: 'MyMQTT',
-        port: 1883,
-        username: 'mqtt_user',
-        password: 'mqtt_user',
-        keepalive : 60
+	clientId: 'MyMQTT',
+	port: 1883,
+	username: 'mqtt_user',
+	password: 'mqtt_user',	
+	keepalive : 60
 };
-
-
-// Configuration MYSQL
-
-//https://www.npmjs.com/package/mysql
-var mysql = require('mysql');
-
-// URL de la base de données
-var Database_URL = '127.0.0.1';
-// Utilisateur de la base de données
-var Database_USER = 'production';
-// Mot de passe de la base de données
-var Database_MDP = 'production';
-// Nom de la base de données
-var Database_NAME = 'mydb';
-var Database_Socket_Path = '/var/run/mysqld/mysqld.sock';
-
 
 ////////////////////////////////////////////////////
 ///////////////////// MQTT /////////////////////////
@@ -101,14 +79,14 @@ function mqtt_close() {
 ////////////////////////////////////////////////////
 ///////////////////// MYSQL ////////////////////////
 ////////////////////////////////////////////////////
-
+var mysql = require('mysql'); //https://www.npmjs.com/package/mysql
 // Création de la connexion
 var connection = mysql.createConnection({
-        host: Database_URL,
-        user: Database_USER,
-        password: Database_MDP,
-        database: Database_NAME,
-        socketPath: Database_Socket_Path
+	host: Database_URL,
+	user: "user",
+	password: "user",
+	database: "mydb",
+	socketPath: '/var/run/mysqld/mysqld.sock'
 });
 
 connection.connect(function(err) {

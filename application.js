@@ -63,7 +63,7 @@ function mqtt_subscribe(err, granted) {
 // Fonction de reconnexion
 function mqtt_reconnect(err) {
     console.log("Reconnexion MQTT");
-    //if (err) {console.log(err);}
+    if (err) {console.log(err);}
 
 // Rappel de la fonction de connexion
 	client  = mqtt.connect(Broker_URL, options);
@@ -87,9 +87,12 @@ function mqtt_messsageReceived(topic, message, packet) {
 
 	if (countInstances(message_str) == 3) {
 		insert_message(topic, message_str, packet);
+		// status = 1, sonde OK
+		insert_message_parc(topic, message_str, packet,1);
 		//console.log(message_str);
 	} else {
-		insert_message_parc(topic,message_str, packet);	
+		// status = 0, sonde HS
+		insert_message_parc(topic, message_str, packet,0);	
 		console.log("Invalide payload");
 	}
 };
@@ -129,9 +132,13 @@ function insert_message(topic, message_str, packet) {
 	// Récupération de la localisation
 	var location = message_arr[3];
 
-	// Requête SQL pour insérer les informations de la sonde en base de données
-	var sql = "INSERT INTO ?? (??,??,??,??,??) VALUES (?,?,?,?,?)";
-	var params = ['tbl_message', 'topic','type', 'serialNumber', 'measurement', 'location' , topic, type, serialNumber, mesure, location];
+	// Requête SQL pour insérer les informations de la sonde en base de données avec localisation
+	//var sql = "INSERT INTO ?? (??,??,??,??,??) VALUES (?,?,?,?,?)";
+	//var params = ['tbl_message', 'topic','type', 'serialNumber', 'measurement', 'location' , topic, type, serialNumber, mesure, location];
+	
+	// Requête SQL pour insérer les informations de la sonde en base de données sans localisation
+	var sql = "INSERT INTO ?? (??,??,??,??) VALUES (?,?,?,?)";
+        var params = ['tbl_message', 'topic','type', 'serialNumber', 'measurement', topic, type, serialNumber, mesure];
 	sql = mysql.format(sql, params);	
 	
 	connection.query(sql, function (error, results) {
@@ -140,31 +147,27 @@ function insert_message(topic, message_str, packet) {
 	}); 
 
 	// Requête SQL pour mettre à jour le statut du capteur (statut = 1 s'il n'est pas en défault)
-        var sql = "UPDATE ?? SET ?? = 1 WHERE ?? = ?";
-        var params = ['parc', 'status','serialNumber', serialNumber];
-        sql = mysql.format(sql, params);
+        //var sql = "UPDATE ?? SET ?? = 1 WHERE ?? = ?";
+        //var params = ['parc', 'status','serialNumber', serialNumber];
+        //sql = mysql.format(sql, params);
 
-        connection.query(sql, function (error, results) {
-                if (error) throw error;
-                console.log("Mise à jour de la table parc " + message_str + "\n");
-        });
+        //connection.query(sql, function (error, results) {
+         //       if (error) throw error;
+         //       console.log("Mise à jour de la table parc " + message_str + "\n");
+        //});
 
 };	
 
 // Insertion d'une ligne dans la table parc
-function insert_message_parc(topic, message_str, packet) {
+function insert_message_parc(topic, message_str, packet, status) {
         var message_arr = extract_string(message_str); 
 
         var type = message_arr[0];
         var serialNumber = message_arr[1];
         var mesure = message_arr[2];
 	// Variable utile dans le cas ou l'on transmet la localisation par MQTT (ici location=default)
-        var location = message_arr[3];
-	
-	var status = 0;
-	// Récupération de la date d'aujourd'hui
-	var dAujourdhui = new Date();
-	
+        var location = message_arr[3];	
+
 	// Requête SQL pour savoir si la sonde en question est déjà en défault (présente dans la base de données)
 	var rows_result_select;
 	var sql_insert = "SELECT ?? FROM ?? WHERE ?? = ?";
@@ -176,38 +179,38 @@ function insert_message_parc(topic, message_str, packet) {
       			var rows_result = rows[0];
 			rows_result['serialNumber'];
 			rows_result_select = rows_result['serialNumber'];
-      			console.log('Resultat :' + rows_result_select);
-    		} else {
-	      		console.log("Pas de données");
+      			//console.log('Resultat :' + rows_result_select);
+    		}else {
+	      		//console.log("Pas de données");
     		}
 		if (error){
                          throw error;
                 }
 
-                console.log("Demande si la sonde est déjà en défault : ");
- 
-		// Test si la sonde en question est déjà en défault
+		// Test si la sonde en question est déjà en défaut
 		if(rows_result_select == serialNumber){
-			console.log("Le default existe déjà");
+			console.log("Le défaut existe déjà");
 			 // Requête pour mettre à jour le statut du capteur
-        		var sql = "UPDATE ?? SET ?? = 0 WHERE ?? = ?";
-        		var params = ['parc', 'status','serialNumber', serialNumber];
+        		var sql = "UPDATE ?? SET ?? = ? WHERE ?? = ?";
+        		var params = ['parc', 'status',status,'serialNumber', serialNumber];
         		sql = mysql.format(sql, params);
 
         		connection.query(sql, function (error, results) {
                 	if (error) throw error;
-        		        console.log("Mise à jour de la table parc pour défaut " + message_str);
+        		        console.log("Mise à jour de la table parc pour défaut \n");
 	        	});
-
 		}else{
-			// Requête pour insérer une nouvelle ligne de défault dans la table parc
+			// Récupération de la date d'aujourd'hui
+		        var dAujourdhui = new Date();
+
+			// Requête pour insérer une nouvelle ligne de défaut dans la table parc
         		var sql = "INSERT INTO ?? (??,??,??,??,??) VALUES (?,?,?,?,?)";
         		var params = ['parc', 'topic','serialNumber','type','dateTimeProduction', 'status', topic, serialNumber, type, dAujourdhui, status];
         		sql = mysql.format(sql, params);
 
         		connection.query(sql, function (error, results) {
                 	if (error) throw error;
-                		console.log("Message ajouté dans la table de gestion de parc : ");
+                		console.log("Message ajouté dans la table de gestion de parc \n" );
         		});	
 		}
 	});
